@@ -111,14 +111,15 @@ private:
     }
 
 public:
-    LinearForm()
+    LinearForm() //конструктор по умолчанию
     {
-        T zero = T();
+        T zero = T(); //создает нулевую линейную форму
 
         coefficients_ = new MutableArraySequence<T>(&zero, 1);
         storageType_ = SequenceStorageType::Array;
     }
 
+    //конструктор из массива коэф
     LinearForm(
         const T *coefficients,
         int count,
@@ -128,6 +129,7 @@ public:
         storageType_ = storageType;
     }
 
+    //конструктор из сиквенс
     explicit LinearForm(const Sequence<T> &coefficients)
     {
         if (coefficients.GetLength() <= 0)
@@ -139,6 +141,7 @@ public:
         storageType_ = DetectStorageType(coefficients);
     }
 
+    //копирующий конструктор
     LinearForm(const LinearForm<T> &other)
     {
         coefficients_ = other.coefficients_->Clone();
