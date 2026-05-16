@@ -269,6 +269,76 @@ public:
         ++length_;
     }
 
+    T RemoveFirst()
+    {
+        CheckNotEmpty();
+
+        Node *node = head_;
+        T value = node->value;
+
+        head_ = head_->next;
+
+        delete node;
+        --length_;
+
+        if (length_ == 0)
+        {
+            tail_ = nullptr;
+        }
+
+        return value;
+    }
+
+    T RemoveLast()
+    {
+        CheckNotEmpty();
+
+        if (length_ == 1)
+        {
+            return RemoveFirst();
+        }
+
+        Node *previous = GetNode(length_ - 2);
+        Node *node = tail_;
+
+        T value = node->value;
+
+        tail_ = previous;
+        tail_->next = nullptr;
+
+        delete node;
+        --length_;
+
+        return value;
+    }
+
+    T RemoveAt(int index)
+    {
+        CheckIndex(index);
+
+        if (index == 0)
+        {
+            return RemoveFirst();
+        }
+
+        if (index == length_ - 1)
+        {
+            return RemoveLast();
+        }
+
+        Node *previous = GetNode(index - 1);
+        Node *node = previous->next;
+
+        T value = node->value;
+
+        previous->next = node->next;
+
+        delete node;
+        --length_;
+
+        return value;
+    }
+    
     LinkedList<T> *GetSubList(int startIndex, int endIndex) const
     {
         if (startIndex < 0 ||

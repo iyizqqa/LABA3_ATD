@@ -1,9 +1,18 @@
 #include <iostream>
+#include <stdexcept>
 
-#include "Tests.h"
+#include "IEnumerator.h"
 #include "LinearForm.h"
 #include "LinearFormTests.h"
 #include "MutableArraySequence.h"
+#include "MutableListSequence.h"
+#include "Sequence.h"
+#include "Tests.h"
+
+#include "Stack.h"
+#include "Queue.h"
+#include "Deque.h"
+#include "LinearContainersTests.h"
 
 void PrintSequence(const Sequence<int> &sequence)
 {
@@ -310,22 +319,23 @@ LinearForm<double> *ReadLinearFormDouble()
             std::cin >> coefficients[i];
         }
 
-        int storageChoice;
+        int sourceChoice;
 
-        std::cout << "Storage type: 1 - ArraySequence, 2 - ListSequence: ";
-        std::cin >> storageChoice;
+        std::cout << "Source sequence type: 1 - ArraySequence, 2 - ListSequence: ";
+        std::cin >> sourceChoice;
 
-        SequenceStorageType storageType = SequenceStorageType::Array;
+        LinearForm<double> *form = nullptr;
 
-        if (storageChoice == 2)
+        if (sourceChoice == 2)
         {
-            storageType = SequenceStorageType::List;
+            MutableListSequence<double> source(coefficients, coefficientCount);
+            form = new LinearForm<double>(&source);
         }
-
-        LinearForm<double> *form = new LinearForm<double>(
-            coefficients,
-            coefficientCount,
-            storageType);
+        else
+        {
+            MutableArraySequence<double> source(coefficients, coefficientCount);
+            form = new LinearForm<double>(&source);
+        }
 
         delete[] coefficients;
 
@@ -340,13 +350,13 @@ LinearForm<double> *ReadLinearFormDouble()
 
 void LinearFormMenu()
 {
-    LinearForm<double> *form = new LinearForm<double>();
+    LinearForm<double> *form = nullptr;
 
     bool running = true;
 
     while (running)
     {
-        std::cout << "\nLinearForm<double> menu\n"
+        std::cout << "\nLinear form menu\n"
                   << "1. Create form\n"
                   << "2. Print form\n"
                   << "3. Evaluate form\n"
@@ -375,73 +385,107 @@ void LinearFormMenu()
             }
             else if (command == 2)
             {
-                PrintLinearForm(*form);
+                if (form == nullptr)
+                {
+                    std::cout << "Create form first\n";
+                }
+                else
+                {
+                    PrintLinearForm(*form);
+                }
             }
             else if (command == 3)
             {
-                int variableCount = form->GetVariableCount();
-
-                double *argumentsArray = new double[variableCount];
-
-                try
+                if (form == nullptr)
                 {
-                    for (int i = 0; i < variableCount; ++i)
-                    {
-                        std::cout << "x" << (i + 1) << ": ";
-                        std::cin >> argumentsArray[i];
-                    }
-
-                    MutableArraySequence<double> arguments(argumentsArray, variableCount);
-
-                    double result = form->Evaluate(arguments);
-
-                    delete[] argumentsArray;
-
-                    std::cout << "Result: " << result << "\n";
+                    std::cout << "Create form first\n";
                 }
-                catch (...)
+                else
                 {
-                    delete[] argumentsArray;
-                    throw;
+                    int variableCount = form->GetVariableCount();
+                    double *argumentsArray = new double[variableCount];
+
+                    try
+                    {
+                        for (int i = 0; i < variableCount; ++i)
+                        {
+                            std::cout << "x" << (i + 1) << ": ";
+                            std::cin >> argumentsArray[i];
+                        }
+
+                        MutableArraySequence<double> arguments(argumentsArray, variableCount);
+
+                        double result = form->Evaluate(arguments);
+
+                        delete[] argumentsArray;
+
+                        std::cout << "Result: " << result << "\n";
+                    }
+                    catch (...)
+                    {
+                        delete[] argumentsArray;
+                        throw;
+                    }
                 }
             }
             else if (command == 4)
             {
-                std::cout << "Enter second form:\n";
+                if (form == nullptr)
+                {
+                    std::cout << "Create form first\n";
+                }
+                else
+                {
+                    std::cout << "Enter second form:\n";
 
-                LinearForm<double> *other = ReadLinearFormDouble();
-                LinearForm<double> *result = form->Add(*other);
+                    LinearForm<double> *other = ReadLinearFormDouble();
+                    LinearForm<double> *result = form->Add(*other);
 
-                std::cout << "Result: ";
-                PrintLinearForm(*result);
+                    std::cout << "Result: ";
+                    PrintLinearForm(*result);
 
-                delete other;
-                delete result;
+                    delete other;
+                    delete result;
+                }
             }
             else if (command == 5)
             {
-                std::cout << "Enter second form:\n";
+                if (form == nullptr)
+                {
+                    std::cout << "Create form first\n";
+                }
+                else
+                {
+                    std::cout << "Enter second form:\n";
 
-                LinearForm<double> *other = ReadLinearFormDouble();
-                LinearForm<double> *result = form->Subtract(*other);
+                    LinearForm<double> *other = ReadLinearFormDouble();
+                    LinearForm<double> *result = form->Subtract(*other);
 
-                std::cout << "Result: ";
-                PrintLinearForm(*result);
+                    std::cout << "Result: ";
+                    PrintLinearForm(*result);
 
-                delete other;
-                delete result;
+                    delete other;
+                    delete result;
+                }
             }
             else if (command == 6)
             {
-                double scalar;
+                if (form == nullptr)
+                {
+                    std::cout << "Create form first\n";
+                }
+                else
+                {
+                    double scalar;
 
-                std::cout << "Scalar: ";
-                std::cin >> scalar;
+                    std::cout << "Scalar: ";
+                    std::cin >> scalar;
 
-                LinearForm<double> *result = form->MultiplyByScalar(scalar);
+                    LinearForm<double> *result = form->MultiplyByScalar(scalar);
 
-                delete form;
-                form = result;
+                    delete form;
+                    form = result;
+                }
             }
             else if (command == 0)
             {
@@ -461,6 +505,227 @@ void LinearFormMenu()
     delete form;
 }
 
+void StackMenu()
+{
+    Stack<int> stack;
+
+    bool running = true;
+
+    while (running)
+    {
+        std::cout << "\nStack menu\n"
+                  << "1. Push\n"
+                  << "2. Pop\n"
+                  << "3. Peek\n"
+                  << "4. Count\n"
+                  << "5. Is empty\n"
+                  << "0. Back\n"
+                  << "Choose: ";
+
+        int command;
+
+        if (!(std::cin >> command))
+        {
+            return;
+        }
+
+        try
+        {
+            if (command == 1)
+            {
+                int value;
+
+                std::cout << "Value: ";
+                std::cin >> value;
+
+                stack.Push(value);
+            }
+            else if (command == 2)
+            {
+                std::cout << "Popped: " << stack.Pop() << "\n";
+            }
+            else if (command == 3)
+            {
+                std::cout << "Top: " << stack.Peek() << "\n";
+            }
+            else if (command == 4)
+            {
+                std::cout << "Count: " << stack.GetCount() << "\n";
+            }
+            else if (command == 5)
+            {
+                std::cout << (stack.IsEmpty() ? "Empty\n" : "Not empty\n");
+            }
+            else if (command == 0)
+            {
+                running = false;
+            }
+            else
+            {
+                std::cout << "Unknown command\n";
+            }
+        }
+        catch (const std::exception &error)
+        {
+            std::cout << "Error: " << error.what() << "\n";
+        }
+    }
+}
+
+void QueueMenu()
+{
+    Queue<int> queue;
+
+    bool running = true;
+
+    while (running)
+    {
+        std::cout << "\nQueue menu\n"
+                  << "1. Enqueue\n"
+                  << "2. Dequeue\n"
+                  << "3. Peek\n"
+                  << "4. Count\n"
+                  << "5. Is empty\n"
+                  << "0. Back\n"
+                  << "Choose: ";
+
+        int command;
+
+        if (!(std::cin >> command))
+        {
+            return;
+        }
+
+        try
+        {
+            if (command == 1)
+            {
+                int value;
+
+                std::cout << "Value: ";
+                std::cin >> value;
+
+                queue.Enqueue(value);
+            }
+            else if (command == 2)
+            {
+                std::cout << "Dequeued: " << queue.Dequeue() << "\n";
+            }
+            else if (command == 3)
+            {
+                std::cout << "Front: " << queue.Peek() << "\n";
+            }
+            else if (command == 4)
+            {
+                std::cout << "Count: " << queue.GetCount() << "\n";
+            }
+            else if (command == 5)
+            {
+                std::cout << (queue.IsEmpty() ? "Empty\n" : "Not empty\n");
+            }
+            else if (command == 0)
+            {
+                running = false;
+            }
+            else
+            {
+                std::cout << "Unknown command\n";
+            }
+        }
+        catch (const std::exception &error)
+        {
+            std::cout << "Error: " << error.what() << "\n";
+        }
+    }
+}
+
+void DequeMenu()
+{
+    Deque<int> deque;
+
+    bool running = true;
+
+    while (running)
+    {
+        std::cout << "\nDeque menu\n"
+                  << "1. Push front\n"
+                  << "2. Push back\n"
+                  << "3. Pop front\n"
+                  << "4. Pop back\n"
+                  << "5. Peek front\n"
+                  << "6. Peek back\n"
+                  << "7. Count\n"
+                  << "8. Is empty\n"
+                  << "0. Back\n"
+                  << "Choose: ";
+
+        int command;
+
+        if (!(std::cin >> command))
+        {
+            return;
+        }
+
+        try
+        {
+            if (command == 1)
+            {
+                int value;
+
+                std::cout << "Value: ";
+                std::cin >> value;
+
+                deque.PushFront(value);
+            }
+            else if (command == 2)
+            {
+                int value;
+
+                std::cout << "Value: ";
+                std::cin >> value;
+
+                deque.PushBack(value);
+            }
+            else if (command == 3)
+            {
+                std::cout << "Popped front: " << deque.PopFront() << "\n";
+            }
+            else if (command == 4)
+            {
+                std::cout << "Popped back: " << deque.PopBack() << "\n";
+            }
+            else if (command == 5)
+            {
+                std::cout << "Front: " << deque.PeekFront() << "\n";
+            }
+            else if (command == 6)
+            {
+                std::cout << "Back: " << deque.PeekBack() << "\n";
+            }
+            else if (command == 7)
+            {
+                std::cout << "Count: " << deque.GetCount() << "\n";
+            }
+            else if (command == 8)
+            {
+                std::cout << (deque.IsEmpty() ? "Empty\n" : "Not empty\n");
+            }
+            else if (command == 0)
+            {
+                running = false;
+            }
+            else
+            {
+                std::cout << "Unknown command\n";
+            }
+        }
+        catch (const std::exception &error)
+        {
+            std::cout << "Error: " << error.what() << "\n";
+        }
+    }
+}
+
 int main()
 {
     bool running = true;
@@ -468,11 +733,15 @@ int main()
     while (running)
     {
         std::cout << "\nLab 3 UI\n"
-                  << "1. Run tests\n"
+                  << "1. Run Lab 2 tests\n"
                   << "2. Work with MutableArraySequence\n"
                   << "3. Work with MutableListSequence\n"
                   << "4. Run LinearForm tests\n"
-                  << "5. Work with LinearForm<double>\n"
+                  << "5. Work with linear form\n"
+                  << "6. Run Stack/Queue/Deque tests\n"
+                  << "7. Work with stack\n"
+                  << "8. Work with queue\n"
+                  << "9. Work with deque\n"
                   << "0. Exit\n"
                   << "Choose: ";
 
@@ -504,6 +773,22 @@ int main()
             else if (command == 5)
             {
                 LinearFormMenu();
+            }
+            else if (command == 6)
+            {
+                RunLinearContainersTests();
+            }
+            else if (command == 7)
+            {
+                StackMenu();
+            }
+            else if (command == 8)
+            {
+                QueueMenu();
+            }
+            else if (command == 9)
+            {
+                DequeMenu();
             }
             else if (command == 0)
             {

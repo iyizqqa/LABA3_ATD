@@ -2,26 +2,15 @@
 
 #include <stdexcept>
 
-#include "ArraySequence.h"
 #include "IEnumerator.h"
-#include "ListSequence.h"
-#include "MutableArraySequence.h"
-#include "MutableListSequence.h"
+#include "ImmutableArraySequence.h"
 #include "Sequence.h"
-
-enum class SequenceStorageType
-{
-    Array,
-    List
-};
 
 template <class T>
 class ILinearForm
 {
 public:
     virtual ~ILinearForm() = default;
-
-    virtual SequenceStorageType GetStorageType() const = 0;
 
     virtual int GetCoefficientCount() const = 0;
     virtual int GetVariableCount() const = 0;
@@ -43,7 +32,6 @@ class LinearForm final : public ILinearForm<T>
 {
 private:
     Sequence<T> *coefficients_ = nullptr;
-    SequenceStorageType storageType_ = SequenceStorageType::Array;
 
     void CheckStorage() const
     {
@@ -66,86 +54,83 @@ private:
         }
     }
 
-    static SequenceStorageType DetectStorageType(const Sequence<T> &sequence)
-    {
-        if (dynamic_cast<const ArraySequence<T> *>(&sequence) != nullptr)
-        {
-            return SequenceStorageType::Array;
-        }
-
-        if (dynamic_cast<const ListSequence<T> *>(&sequence) != nullptr)
-        {
-            return SequenceStorageType::List;
-        }
-
-        throw std::invalid_argument("LinearForm: unknown sequence storage type");
-    }
-
-    static Sequence<T> *CreateSequence(
-        const T *coefficients,
-        int count,
-        SequenceStorageType storageType)
-    {
-        if (count <= 0)
-        {
-            throw std::invalid_argument("LinearForm: coefficient count must be positive");
-        }
-
-        if (coefficients == nullptr)
-        {
-            throw std::invalid_argument("LinearForm: coefficients pointer is null");
-        }
-
-        if (storageType == SequenceStorageType::Array)
-        {
-            return new MutableArraySequence<T>(coefficients, count);
-        }
-
-        return new MutableListSequence<T>(coefficients, count);
-    }
-
     static void DeleteIterator(IEnumerator<T> *&iterator)
     {
         delete iterator;
         iterator = nullptr;
     }
 
-public:
-    LinearForm() //конструктор по умолчанию
+    static Sequence<T> *CopyToImmutableArraySequence(const Sequence<T> *source)
     {
-        T zero = T(); //создает нулевую линейную форму
+        if (source == nullptr)
+        {
+            throw std::invalid_argument("LinearForm: source sequence pointer is null");
+        }
 
-        coefficients_ = new MutableArraySequence<T>(&zero, 1);
-        storageType_ = SequenceStorageType::Array;
-    }
+        int count = source->GetLength();
 
-    //конструктор из массива коэф
-    LinearForm(
-        const T *coefficients,
-        int count,
-        SequenceStorageType storageType = SequenceStorageType::Array)
-    {
-        coefficients_ = CreateSequence(coefficients, count, storageType);
-        storageType_ = storageType;
-    }
-
-    //конструктор из сиквенс
-    explicit LinearForm(const Sequence<T> &coefficients)
-    {
-        if (coefficients.GetLength() <= 0)
+        if (count <= 0)
         {
             throw std::invalid_argument("LinearForm: coefficient count must be positive");
         }
 
-        coefficients_ = coefficients.Clone();
-        storageType_ = DetectStorageType(coefficients);
+        T *buffer = new T[count];
+        IEnumerator<T> *iterator = nullptr;
+
+        try
+        {
+            iterator = source->GetEnumerator();
+
+            int index = 0;
+
+            while (iterator->HasNext())
+            {
+                buffer[index] = iterator->Next();
+                ++index;
+            }
+
+            DeleteIterator(iterator);
+
+            Sequence<T> *result = new ImmutableArraySequence<T>(buffer, count);
+
+            delete[] buffer;
+
+            return result;
+        }
+        catch (...)
+        {
+            DeleteIterator(iterator);
+            delete[] buffer;
+            throw;
+        }
     }
 
-    //копирующий конструктор
+    LinearForm<T> *CreateResultFromArray(const T *items, int count) const
+    {
+        if (items == nullptr)
+        {
+            throw std::invalid_argument("LinearForm: result coefficients pointer is null");
+        }
+
+        if (count <= 0)
+        {
+            throw std::invalid_argument("LinearForm: result coefficient count must be positive");
+        }
+
+        ImmutableArraySequence<T> sequence(items, count);
+
+        return new LinearForm<T>(&sequence);
+    }
+
+public:
+    explicit LinearForm(const Sequence<T> *coefficients)
+    {
+        coefficients_ = CopyToImmutableArraySequence(coefficients);
+    }
+
     LinearForm(const LinearForm<T> &other)
     {
-        coefficients_ = other.coefficients_->Clone();
-        storageType_ = other.storageType_;
+        coefficients_ = CopyToImmutableArraySequence(other.coefficients_);
     }
 
     LinearForm<T> &operator=(const LinearForm<T> &other)
@@ -166,22 +151,15 @@ public:
         delete coefficients_;
     }
 
+private:
     void Swap(LinearForm<T> &other)
     {
-        Sequence<T> *tempCoefficients = coefficients_;
+        Sequence<T> *temp = coefficients_;
         coefficients_ = other.coefficients_;
-        other.coefficients_ = tempCoefficients;
-
-        SequenceStorageType tempStorageType = storageType_;
-        storageType_ = other.storageType_;
-        other.storageType_ = tempStorageType;
+        other.coefficients_ = temp;
     }
 
-    SequenceStorageType GetStorageType() const override
-    {
-        return storageType_;
-    }
-
+public:
     int GetCoefficientCount() const override
     {
         CheckStorage();
@@ -231,10 +209,7 @@ public:
             DeleteIterator(leftIterator);
             DeleteIterator(rightIterator);
 
-            LinearForm<T> *result = new LinearForm<T>(
-                resultCoefficients,
-                count,
-                storageType_);
+            LinearForm<T> *result = CreateResultFromArray(resultCoefficients, count);
 
             delete[] resultCoefficients;
 
@@ -275,10 +250,7 @@ public:
             DeleteIterator(leftIterator);
             DeleteIterator(rightIterator);
 
-            LinearForm<T> *result = new LinearForm<T>(
-                resultCoefficients,
-                count,
-                storageType_);
+            LinearForm<T> *result = CreateResultFromArray(resultCoefficients, count);
 
             delete[] resultCoefficients;
 
@@ -314,10 +286,7 @@ public:
 
             DeleteIterator(iterator);
 
-            LinearForm<T> *result = new LinearForm<T>(
-                resultCoefficients,
-                count,
-                storageType_);
+            LinearForm<T> *result = CreateResultFromArray(resultCoefficients, count);
 
             delete[] resultCoefficients;
 

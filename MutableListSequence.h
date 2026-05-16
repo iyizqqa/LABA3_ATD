@@ -33,6 +33,21 @@ public:
     MutableListSequence(const MutableListSequence<T> &other)
         : ListSequence<T>(other) {}
 
+    T RemoveFirst()
+    {
+        return this->RemoveFirstInternal();
+    }
+
+    T RemoveLast()
+    {
+        return this->RemoveLastInternal();
+    }
+
+    T RemoveAt(int index)
+    {
+        return this->RemoveAtInternal(index);
+    }
+
     Sequence<T> *Clone() const override
     {
         return new MutableListSequence<T>(*this);

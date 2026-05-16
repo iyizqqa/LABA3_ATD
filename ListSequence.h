@@ -31,6 +31,21 @@ protected:
         data_.InsertAt(item, index);
     }
 
+    T RemoveFirstInternal()
+    {
+        return data_.RemoveFirst();
+    }
+
+    T RemoveLastInternal()
+    {
+        return data_.RemoveLast();
+    }
+
+    T RemoveAtInternal(int index)
+    {
+        return data_.RemoveAt(index);
+    }
+
 public:
     ListSequence() = default;
 
