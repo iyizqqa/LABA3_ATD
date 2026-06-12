@@ -13,14 +13,17 @@ private:
         T value;
         Node *next;
 
+        //конструктор узла, explicit запрещает неявное создание Node из T
         explicit Node(const T &value, Node *next = nullptr)
             : value(value), next(next) {}
     };
 
+    //узлы создаются динамически
     Node *head_ = nullptr;
     Node *tail_ = nullptr;
     int length_ = 0;
 
+    //используется перед getfirst/last removefirst/last
     void CheckNotEmpty() const
     {
         if (length_ == 0)
@@ -37,6 +40,7 @@ private:
         }
     }
 
+    //используется там где нужно менять связи insertat removeat renovelast
     Node *GetNode(int index)
     {
         CheckIndex(index);
@@ -51,6 +55,7 @@ private:
         return current;
     }
 
+    //используется в const методах где нельзя менять список 
     const Node *GetNode(int index) const
     {
         CheckIndex(index);
@@ -68,10 +73,11 @@ private:
     class LinkedListEnumerator final : public IEnumerator<T>
     {
     private:
-        const LinkedList<T> &list_;
-        const Node *current_;
+        const LinkedList<T> &list_;//ссылка на список который итератор обходит
+        const Node *current_;//указатель на текущий узел
 
     public:
+        //конструктор итератора
         explicit LinkedListEnumerator(const LinkedList<T> &list)
             : list_(list), current_(list.head_) {}
 
@@ -80,6 +86,7 @@ private:
             return current_ != nullptr;
         }
 
+        //сдвигаем итератор на след узел и возвращаем значение предыдущего узла
         const T &Next() override
         {
             if (current_ == nullptr)
@@ -100,8 +107,10 @@ private:
     };
 
 public:
+    //конструктор по умолчанию
     LinkedList() = default;
 
+    //конструктор из массива
     LinkedList(const T *items, int count)
     {
         if (count < 0)
@@ -120,6 +129,9 @@ public:
         }
     }
 
+    //копирующий конструктор
+    //append создает новый узел, копия получает свои узлы
+    //итератор создан черещ new внутри GetEnumerator поэтому после работы обязаны удалить
     LinkedList(const LinkedList<T> &other)
     {
         IEnumerator<T> *iterator = other.GetEnumerator();
@@ -154,6 +166,7 @@ public:
         return *this;
     }
 
+    //деструктор clear проходит по узлам и удаляет
     ~LinkedList()
     {
         Clear();
@@ -289,6 +302,8 @@ public:
         return value;
     }
 
+    //сложность O(n)  несмотря на наличие хвоста удалитб последний элемент за O(1) нельзя
+    // тк в односвязном списске нет указателя на предыдущий узел
     T RemoveLast()
     {
         CheckNotEmpty();

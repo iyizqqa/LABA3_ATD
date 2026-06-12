@@ -10,12 +10,16 @@ template <class T>
 class ArraySequence : public Sequence<T>
 {
 protected:
-    DynamicArray<T> data_;
+    DynamicArray<T> data_; //это обьект в протектед чтобы наследникам удобно было
 
+    //создает копию текущей аррсек
     virtual ArraySequence<T> *CloneArraySequence() const = 0;
+    //мут/немут в мут инстанс возвр зис в иммут возвр клонаррсек
     virtual ArraySequence<T> *Instance() = 0;
+    //создает пустую посл того же типа
     virtual ArraySequence<T> *NewArrayInstance() const = 0;
 
+    //внутренний метод, меняет data_, нельзя напрямую иначе иммут посл можно было бы изм
     void AppendInternal(const T &item)
     {
         data_.Resize(data_.GetSize() + 1);
@@ -42,14 +46,21 @@ protected:
     }
 
 public:
+    //конструктор по умолчанию
     ArraySequence() = default;
 
+    //конструктор из обычного массива
+    //вызывает конструктор DynamicArray(const T* items, int count)
     ArraySequence(const T *items, int count)
         : data_(items, count) {}
 
+    //создает сиквенс из существующего дайнемик арр
+    //вызывает копирующтй конструктор дайнемик арр
+    //explicit чтобы нельзя было случайно неявно преобразовать DynamicArray<T> в ArraySequence<T>
     explicit ArraySequence(const DynamicArray<T> &array)
         : data_(array) {}
 
+    //кпирующий конструктор вызывает копирующий конструктор дайнемик арр
     ArraySequence(const ArraySequence<T> &other)
         : data_(other.data_) {}
 
@@ -179,9 +190,10 @@ public:
             {
                 result->AppendInternal(iterator->Next());
             }
-
-            delete iterator;
-            delete snapshot;
+            //appenditernal потому что result уже выбран через Instance 
+            //если вызвать append опять включится мут/иммут механизм и для иммут могут быть лищние копии
+            delete iterator; //был создан через GetEnumerator()
+            delete snapshot; //через Clone
         }
         catch (...)
         {
@@ -204,6 +216,7 @@ public:
         return NewArrayInstance();
     }
 
+    //делегируем создание итератора внутреннему DynamicArray, удаляет тт кто получил
     IEnumerator<T> *GetEnumerator() const override
     {
         return data_.GetEnumerator();

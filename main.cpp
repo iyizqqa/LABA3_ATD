@@ -3,16 +3,13 @@
 
 #include "IEnumerator.h"
 #include "LinearForm.h"
-#include "LinearFormTests.h"
 #include "MutableArraySequence.h"
 #include "MutableListSequence.h"
 #include "Sequence.h"
-#include "Tests.h"
 
 #include "Stack.h"
 #include "Queue.h"
 #include "Deque.h"
-#include "LinearContainersTests.h"
 
 void PrintSequence(const Sequence<int> &sequence)
 {
@@ -326,15 +323,19 @@ LinearForm<double> *ReadLinearFormDouble()
 
         LinearForm<double> *form = nullptr;
 
-        if (sourceChoice == 2)
+        if (sourceChoice == 1)
+        {
+            MutableArraySequence<double> source(coefficients, coefficientCount);
+            form = new LinearForm<double>(source);
+        }
+        else if (sourceChoice == 2)
         {
             MutableListSequence<double> source(coefficients, coefficientCount);
-            form = new LinearForm<double>(&source);
+            form = new LinearForm<double>(source);
         }
         else
         {
-            MutableArraySequence<double> source(coefficients, coefficientCount);
-            form = new LinearForm<double>(&source);
+            throw std::invalid_argument("Unkmown source sequence type");
         }
 
         delete[] coefficients;
@@ -439,13 +440,23 @@ void LinearFormMenu()
                     std::cout << "Enter second form:\n";
 
                     LinearForm<double> *other = ReadLinearFormDouble();
-                    LinearForm<double> *result = form->Add(*other);
+                    
+                    try
+                    {
+                        LinearForm<double> *result = form->Add(*other);
 
-                    std::cout << "Result: ";
-                    PrintLinearForm(*result);
+                        std::cout << "Result: ";
+                        PrintLinearForm(*result);
 
-                    delete other;
-                    delete result;
+                        delete other;
+                        delete result;
+                    }
+                    catch(...)
+                    {
+                        delete other;
+                        throw;
+                    }
+                    
                 }
             }
             else if (command == 5)
@@ -459,13 +470,22 @@ void LinearFormMenu()
                     std::cout << "Enter second form:\n";
 
                     LinearForm<double> *other = ReadLinearFormDouble();
-                    LinearForm<double> *result = form->Subtract(*other);
 
-                    std::cout << "Result: ";
-                    PrintLinearForm(*result);
+                    try
+                    {
+                       LinearForm<double> *result = form->Subtract(*other);
 
-                    delete other;
-                    delete result;
+                        std::cout << "Result: ";
+                        PrintLinearForm(*result);
+
+                        delete other;
+                        delete result;
+                    } 
+                    catch(...)
+                    {
+                        delete other;
+                        throw;
+                    }
                 }
             }
             else if (command == 6)
@@ -733,15 +753,12 @@ int main()
     while (running)
     {
         std::cout << "\nLab 3 UI\n"
-                  << "1. Run Lab 2 tests\n"
-                  << "2. Work with MutableArraySequence\n"
-                  << "3. Work with MutableListSequence\n"
-                  << "4. Run LinearForm tests\n"
-                  << "5. Work with linear form\n"
-                  << "6. Run Stack/Queue/Deque tests\n"
-                  << "7. Work with stack\n"
-                  << "8. Work with queue\n"
-                  << "9. Work with deque\n"
+                  << "1. Work with MutableArraySequence\n"
+                  << "2. Work with MutableListSequence\n"
+                  << "3. Work with linear form\n"
+                  << "4. Work with stack\n"
+                  << "5. Work with queue\n"
+                  << "6. Work with deque\n"
                   << "0. Exit\n"
                   << "Choose: ";
 
@@ -756,37 +773,25 @@ int main()
         {
             if (command == 1)
             {
-                RunAllTests();
+                ArraySequenceMenu();
             }
             else if (command == 2)
             {
-                ArraySequenceMenu();
+                ListSequenceMenu();
             }
             else if (command == 3)
             {
-                ListSequenceMenu();
+                LinearFormMenu();
             }
             else if (command == 4)
             {
-                RunLinearFormTests();
+                StackMenu();
             }
             else if (command == 5)
             {
-                LinearFormMenu();
-            }
-            else if (command == 6)
-            {
-                RunLinearContainersTests();
-            }
-            else if (command == 7)
-            {
-                StackMenu();
-            }
-            else if (command == 8)
-            {
                 QueueMenu();
             }
-            else if (command == 9)
+            else if (command == 6)
             {
                 DequeMenu();
             }

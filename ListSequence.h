@@ -10,12 +10,18 @@ template <class T>
 class ListSequence : public Sequence<T>
 {
 protected:
-    LinkedList<T> data_;
+    LinkedList<T> data_; //хранится как объект, потому что ListSequence напрямую владеет списком. LinkedList не является абстрактным, поэтому указатель здесь не нужен
 
+    //создает копию текущей лист сек
     virtual ListSequence<T> *CloneListSequence() const = 0;
+    //для мут иммут либо зис для мут длм копия для иммут
     virtual ListSequence<T> *Instance() = 0;
+    //пустая посл нужного типа
     virtual ListSequence<T> *NewListInstance() const = 0;
 
+    //internal методы меняют хранилище
+    //напрямую не меняют внтуренний список 
+    //может вызвать только сам ListSequence либо наследники
     void AppendInternal(const T &item)
     {
         data_.Append(item);
@@ -47,14 +53,21 @@ protected:
     }
 
 public:
+    //конструктор по умолчанию
     ListSequence() = default;
 
+    //конструктор из обычного массива
     ListSequence(const T *items, int count)
         : data_(items, count) {}
 
+    //конструктор из линкедлист
+    //вызывает копирующий конструктор LinkedList
+    //explicit нужен, чтобы конструктор с одним аргументом не использовался для неявных преобразований
     explicit ListSequence(const LinkedList<T> &list)
         : data_(list) {}
 
+    //копирующий конструктор
+    //data_(other.data_) вызывает копирующий конструктор LinkedList
     ListSequence(const ListSequence<T> &other)
         : data_(other.data_) {}
 
@@ -86,8 +99,9 @@ public:
         try
         {
             result = NewListInstance();
-            result->data_ = *subList;
-
+            result->data_ = *subList;//subList указатель *subList сам объект LinkedList
+            //присваиваем внутреннему списку результата список subList.
+            //LinkedList<T>::operator= вызывается
             delete subList;
         }
         catch (...)

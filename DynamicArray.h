@@ -20,13 +20,16 @@ private:
         }
     }
 
+    //класс вложен
     class DynamicArrayEnumerator final : public IEnumerator<T>
     {
     private:
-        const DynamicArray<T> &array_;
+        const DynamicArray<T> &array_; //ссылка на массив который обх итератор тк он не должен копировать 
         int index_ = 0;
 
     public:
+        //конструктор итератора, explicit запрещает неявные преобразования, делает создание обьекта явным
+        //нельзя случайно превратить DynamicArray<T> в DynamicArrayEnumerator
         explicit DynamicArrayEnumerator(const DynamicArray<T> &array)
             : array_(array) {}
 
@@ -52,8 +55,10 @@ private:
     };
 
 public:
+    //конструктор по умолчанию создает пустой массив
     DynamicArray() = default;
 
+    //конструктор по размеру 
     explicit DynamicArray(int size)
     {
         if (size < 0)
@@ -69,6 +74,7 @@ public:
         }
     }
 
+    //конструктор из обычного массива
     DynamicArray(const T *items, int count)
     {
         if (count < 0)
@@ -94,6 +100,7 @@ public:
         }
     }
 
+    //копирующий конструктор внутри есть сырой указатель
     DynamicArray(const DynamicArray<T> &other)
     {
         if (other.capacity_ > 0)
@@ -109,6 +116,8 @@ public:
         }
     }
 
+    //копирующий конструктор создает новый обьект 
+    //а опертатор присваивания заменяет содержимое уже существующего обьекта
     DynamicArray<T> &operator=(const DynamicArray<T> &other)
     {
         if (this == &other)
@@ -145,6 +154,7 @@ public:
         return *this;
     }
 
+    //деструктор
     ~DynamicArray()
     {
         delete[] data_;
@@ -190,6 +200,7 @@ public:
         capacity_ = newCapacity;
     }
 
+    //уменьшает капасити до сайз
     void ShrinkToFit()
     {
         if (size_ == capacity_)
@@ -226,6 +237,7 @@ public:
         capacity_ = size_;
     }
 
+    //меняет логический размер массива
     void Resize(int newSize)
     {
         if (newSize < 0)
@@ -275,11 +287,13 @@ public:
         data_[index] = value;
     }
 
+    //если обьект конст
     const T &operator[](int index) const
     {
         return Get(index);
     }
 
+    //для неконстантного обьекта
     T &operator[](int index)
     {
         CheckIndex(index);
